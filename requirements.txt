@@ -1,0 +1,10 @@
+evadb
+torch
+requests
+pandas
+numpy
+os
+io
+typing
+openai
+unittest
