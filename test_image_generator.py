@@ -58,3 +58,28 @@ class ImageGenerationFunctionTest(unittest.TestCase):
         mock_openai_create.assert_called_once_with(
             prompt="a city at night", n=1, size="1024x1024"
         )
+
+    @patch.dict("os.environ", {"OPENAI_KEY": "mocked_openai_key"})
+    @patch("requests.get")
+    @patch("openai.Image.create", return_value={"data": [{"url": "mocked_url"}]})
+    def test_image_generation_cache(self, mock_openai_create, mock_requests_get):
+        # Set up mock response for image request
+        img = Image.new("RGB", (1, 1), color="white")
+        img_byte_array = BytesIO()
+        img.save(img_byte_array, format="PNG")
+        mock_image_content = img_byte_array.getvalue()
+        mock_response = MagicMock()
+        mock_response.content = mock_image_content
+        mock_requests_get.return_value = mock_response
+
+        # Call the ImageGeneration function twice with the same prompt to test the caching feature
+        function_name = "ImageGeneration"
+        prompt = "a city at night"
+        for _ in range(2):
+            execute_query_fetch_all(self.evadb, f"SELECT {function_name}(prompt) FROM ImageGenerator WHERE prompt = '{prompt}';")
+
+        # Check that OpenAI API is called only once, indicating caching works
+        mock_openai_create.assert_called_once_with(
+            prompt=prompt, n=1, size="1024x1024"
+        )
+
